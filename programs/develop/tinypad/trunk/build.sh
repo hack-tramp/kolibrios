@@ -8,7 +8,3 @@
 	kpack tinypad
 	rm -f lang.inc
 	exit 0
-
-
-
-
