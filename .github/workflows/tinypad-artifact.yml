@@ -1,0 +1,57 @@
+name: Build Tinypad artifact
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'programs/develop/tinypad/**'
+      - '.github/workflows/tinypad-artifact.yml'
+
+jobs:
+  build-tinypad:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fasm qemu-user gcc make
+
+      - name: Prepare fasm wrapper (for environments where /usr/bin/fasm is 32-bit only)
+        run: |
+          if /usr/bin/fasm 2>/dev/null; then
+            echo "Native fasm works"
+          else
+            echo "Using qemu-i386 wrapper for fasm"
+            sudo tee /usr/local/bin/fasm >/dev/null <<'SH'
+#!/bin/sh
+exec qemu-i386 /usr/bin/fasm "$@"
+SH
+            sudo chmod +x /usr/local/bin/fasm
+          fi
+          fasm 2>&1 | head -n 2
+
+      - name: Build kpack
+        run: |
+          cd programs/other/kpack/kerpack_linux
+          make clean
+          make kpack
+          install -m 0755 kpack /usr/local/bin/kpack
+          kpack 2>&1 | head -n 2
+
+      - name: Build tinypad
+        run: |
+          cd programs/develop/tinypad/trunk
+          bash build.sh
+          ls -lh tinypad
+          sha256sum tinypad
+
+      - name: Upload tinypad artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tinypad-${{ github.sha }}
+          path: programs/develop/tinypad/trunk/tinypad
+          if-no-files-found: error
