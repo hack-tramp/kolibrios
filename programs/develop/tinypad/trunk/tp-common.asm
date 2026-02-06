@@ -394,7 +394,9 @@ endp
 ;-----------------------------------------------------------------------------
 proc delete_selection ;///////////////////////////////////////////////////////
 ;-----------------------------------------------------------------------------
-;       call    init_sel_vars
+; Keep selection coordinates in sync with current caret/anchor state.
+	mov	ebp,cur_editor
+	call	init_sel_vars
 
 	cmp	[sel.selected],0
 	je	.exit.2
